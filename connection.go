@@ -2,6 +2,7 @@ package gremgo
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"sync"
 	"time"
@@ -44,10 +45,11 @@ type Ws struct {
 	readingWait  time.Duration
 	timeout      time.Duration
 	quit         chan struct{}
+	tlsConfig    *tls.Config
 	sync.RWMutex
 }
 
-//Auth is the container for authentication data of dialer
+// Auth is the container for authentication data of dialer
 type auth struct {
 	username string
 	password string
@@ -63,6 +65,11 @@ func (ws *Ws) connectCtx(ctx context.Context) (err error) {
 		ReadBufferSize:   512 * 1024,
 		HandshakeTimeout: 5 * time.Second, // Timeout or else we'll hang forever and never fail on bad hosts.
 	}
+
+	if ws.tlsConfig != nil {
+		d.TLSClientConfig = ws.tlsConfig
+	}
+
 	ws.conn, _, err = d.DialContext(ctx, ws.host, http.Header{})
 	if err != nil {
 		return
